@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACMG/AMP Variant Classification Advisor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+        header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px 0;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        header p { opacity: 0.85; font-size: 0.95rem; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .card.pathogenic h2 { border-color: #e74c3c; color: #c0392b; }
+        .card.benign h2 { border-color: #27ae60; color: #229954; }
+
+        .code-group { margin-bottom: 12px; }
+        .code-group-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .code-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .code-item:hover { background: #f0f4f8; }
+        .code-item input { margin-right: 10px; cursor: pointer; }
+        .code-item .code-name {
+            font-weight: 600;
+            font-family: monospace;
+            font-size: 0.95rem;
+            min-width: 50px;
+        }
+        .code-item .code-pts {
+            font-family: monospace;
+            font-size: 0.85rem;
+            min-width: 35px;
+            text-align: right;
+            margin-right: 10px;
+        }
+        .code-item .code-pts.positive { color: #c0392b; }
+        .code-item .code-pts.negative { color: #229954; }
+        .code-item .code-desc {
+            font-size: 0.82rem;
+            color: #666;
+            flex: 1;
+        }
+
+        .actions { text-align: center; margin: 20px 0; }
+        .btn {
+            padding: 12px 35px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(52,152,219,0.4); }
+        .btn-secondary {
+            background: #eee;
+            color: #555;
+            margin-left: 10px;
+        }
+        .btn-secondary:hover { background: #ddd; }
+
+        #results {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .result-card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .classification-badge {
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: white;
+            margin: 10px 0 15px;
+        }
+        .badge-P { background: #c0392b; }
+        .badge-LP { background: #e67e22; }
+        .badge-VUS { background: #7f8c8d; }
+        .badge-LB { background: #2ecc71; }
+        .badge-B { background: #27ae60; }
+
+        .points-display {
+            font-size: 1rem;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .points-display .total { font-size: 1.4rem; font-weight: 700; }
+
+        .tier-change { margin-bottom: 20px; }
+        .tier-change h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        .tier-change .needed {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .option {
+            background: #f8f9fa;
+            border-left: 3px solid #3498db;
+            padding: 10px 15px;
+            margin: 8px 0;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.9rem;
+        }
+        .option .option-codes { font-weight: 600; font-family: monospace; }
+        .option .option-desc { color: #666; font-size: 0.82rem; margin-top: 4px; }
+
+        .upgrade-section h2 { color: #c0392b; border-bottom: 2px solid #e74c3c; padding-bottom: 10px; }
+        .upgrade-section .option { border-left-color: #e74c3c; }
+        .downgrade-section h2 { color: #229954; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
+        .downgrade-section .option { border-left-color: #27ae60; }
+
+        .no-options { color: #aaa; font-style: italic; font-size: 0.9rem; }
+
+        .error-msg {
+            background: #fee;
+            color: #c0392b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>ACMG/AMP Variant Classification Advisor</h1>
+            <p>Bayesian Point-Based System (Tavtigian et al. 2020)</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="grid">
+            <!-- Pathogenic codes -->
+            <div class="card pathogenic">
+                <h2>Pathogenic Evidence</h2>
+
+                <div class="code-group">
+                    <div class="code-group-label">Very Strong (8 pts)</div>
+                    {% for code in pathogenic_codes if code.strength.value == 'very_strong' %}
+                    <label class="code-item">
+                        <input type="checkbox" name="codes" value="{{ code.code }}">
+                        <span class="code-name">{{ code.code }}</span>
+                        <span class="code-pts positive">+{{ code.points }}</span>
+                        <span class="code-desc">{{ code.description }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="code-group">
+                    <div class="code-group-label">Strong (4 pts each)</div>
+                    {% for code in pathogenic_codes if code.strength.value == 'strong' %}
+                    <label class="code-item">
+                        <input type="checkbox" name="codes" value="{{ code.code }}">
+                        <span class="code-name">{{ code.code }}</span>
+                        <span class="code-pts positive">+{{ code.points }}</span>
+                        <span class="code-desc">{{ code.description }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="code-group">
+                    <div class="code-group-label">Moderate (2 pts each)</div>
+                    {% for code in pathogenic_codes if code.strength.value == 'moderate' %}
+                    <label class="code-item">
+                        <input type="checkbox" name="codes" value="{{ code.code }}">
+                        <span class="code-name">{{ code.code }}</span>
+                        <span class="code-pts positive">+{{ code.points }}</span>
+                        <span class="code-desc">{{ code.description }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="code-group">
+                    <div class="code-group-label">Supporting (1 pt each)</div>
+                    {% for code in pathogenic_codes if code.strength.value == 'supporting' %}
+                    <label class="code-item">
+                        <input type="checkbox" name="codes" value="{{ code.code }}">
+                        <span class="code-name">{{ code.code }}</span>
+                        <span class="code-pts positive">+{{ code.points }}</span>
+                        <span class="code-desc">{{ code.description }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Benign codes -->
+            <div class="card benign">
+                <h2>Benign Evidence</h2>
+
+                <div class="code-group">
+                    <div class="code-group-label">Stand-Alone (-8 pts)</div>
+                    {% for code in benign_codes if code.strength.value == 'stand_alone' %}
+                    <label class="code-item">
+                        <input type="checkbox" name="codes" value="{{ code.code }}">
+                        <span class="code-name">{{ code.code }}</span>
+                        <span class="code-pts negative">{{ code.points }}</span>
+                        <span class="code-desc">{{ code.description }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="code-group">
+                    <div class="code-group-label">Strong (-4 pts each)</div>
+                    {% for code in benign_codes if code.strength.value == 'strong' %}
+                    <label class="code-item">
+                        <input type="checkbox" name="codes" value="{{ code.code }}">
+                        <span class="code-name">{{ code.code }}</span>
+                        <span class="code-pts negative">{{ code.points }}</span>
+                        <span class="code-desc">{{ code.description }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="code-group">
+                    <div class="code-group-label">Supporting (-1 pt each)</div>
+                    {% for code in benign_codes if code.strength.value == 'supporting' %}
+                    <label class="code-item">
+                        <input type="checkbox" name="codes" value="{{ code.code }}">
+                        <span class="code-name">{{ code.code }}</span>
+                        <span class="code-pts negative">{{ code.points }}</span>
+                        <span class="code-desc">{{ code.description }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="analyze()">Analyze Classification</button>
+            <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+        </div>
+
+        <div class="error-msg" id="error"></div>
+
+        <div id="results">
+            <!-- Current classification -->
+            <div class="result-card" id="classification-card">
+                <h2>Current Classification</h2>
+                <div id="classification-content"></div>
+            </div>
+
+            <!-- Upgrades -->
+            <div class="result-card upgrade-section" id="upgrade-card" style="display:none;">
+                <h2>Upgrades (toward Pathogenic)</h2>
+                <div id="upgrade-content"></div>
+            </div>
+
+            <!-- Downgrades -->
+            <div class="result-card downgrade-section" id="downgrade-card" style="display:none;">
+                <h2>Downgrades (toward Benign)</h2>
+                <div id="downgrade-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getSelectedCodes() {
+            const checkboxes = document.querySelectorAll('input[name="codes"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        async function analyze() {
+            const codes = getSelectedCodes();
+            const errorEl = document.getElementById('error');
+            const resultsEl = document.getElementById('results');
+            errorEl.style.display = 'none';
+
+            if (codes.length === 0) {
+                errorEl.textContent = 'Please select at least one evidence code.';
+                errorEl.style.display = 'block';
+                resultsEl.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/advise', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codes: codes }),
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    errorEl.textContent = data.error;
+                    errorEl.style.display = 'block';
+                    resultsEl.style.display = 'none';
+                    return;
+                }
+
+                renderResults(data);
+                resultsEl.style.display = 'block';
+                resultsEl.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                errorEl.textContent = 'Failed to connect to the server.';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        function renderResults(data) {
+            // Classification
+            const classEl = document.getElementById('classification-content');
+            classEl.innerHTML = `
+                <div class="classification-badge badge-${data.current_short}">
+                    ${data.current_classification}
+                </div>
+                <div class="points-display">
+                    <span class="total">${data.total_points} points</span><br>
+                    Pathogenic: <span style="color:#c0392b">+${Math.abs(data.total_points - (data.total_points < 0 ? data.total_points : 0))}</span> |
+                    Benign: <span style="color:#229954">${data.total_points < 0 ? data.total_points : 0}</span>
+                </div>
+                <div style="margin-top:10px; font-size:0.9rem; color:#666;">
+                    Applied: <strong>${data.applied_codes.join(', ')}</strong>
+                </div>
+            `;
+
+            // Recalculate points display from the raw data
+            let pathPts = 0, benPts = 0;
+            // We need to get this from the response - let's use the advise endpoint which returns it
+            // For now use total_points directly
+
+            // Upgrades
+            const upgradeCard = document.getElementById('upgrade-card');
+            const upgradeContent = document.getElementById('upgrade-content');
+            if (data.upgrades && data.upgrades.length > 0) {
+                upgradeCard.style.display = 'block';
+                upgradeContent.innerHTML = data.upgrades.map(u => renderTierChange(u, 'upgrade')).join('');
+            } else {
+                upgradeCard.style.display = 'none';
+            }
+
+            // Downgrades
+            const downgradeCard = document.getElementById('downgrade-card');
+            const downgradeContent = document.getElementById('downgrade-content');
+            if (data.downgrades && data.downgrades.length > 0) {
+                downgradeCard.style.display = 'block';
+                downgradeContent.innerHTML = data.downgrades.map(d => renderTierChange(d, 'downgrade')).join('');
+            } else {
+                downgradeCard.style.display = 'none';
+            }
+        }
+
+        function renderTierChange(change, direction) {
+            const dirLabel = direction === 'upgrade' ? '+' : '';
+            let html = `
+                <div class="tier-change">
+                    <h3>To reach <strong>${change.target_tier}</strong></h3>
+                    <div class="needed">${Math.abs(change.points_needed)} more point${Math.abs(change.points_needed) !== 1 ? 's' : ''} needed</div>
+            `;
+
+            if (change.options.length === 0) {
+                html += '<div class="no-options">No combination of up to 4 additional codes is sufficient.</div>';
+            } else {
+                change.options.slice(0, 10).forEach((opt, i) => {
+                    const codesStr = opt.codes.map((c, j) => `${c} (${opt.points[j] > 0 ? '+' : ''}${opt.points[j]})`).join(' + ');
+                    const descs = opt.codes.map((c, j) => `<strong>${c}</strong>: ${opt.descriptions[j]}`).join('<br>');
+                    html += `
+                        <div class="option">
+                            <div class="option-codes">Option ${i+1}: ${codesStr} = ${opt.total_points > 0 ? '+' : ''}${opt.total_points} pts</div>
+                            <div class="option-desc">${descs}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function clearAll() {
+            document.querySelectorAll('input[name="codes"]:checked').forEach(cb => cb.checked = false);
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
