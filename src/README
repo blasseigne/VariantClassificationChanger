@@ -1,0 +1,6 @@
+Add any project-generated scripts and programs here.
+
+Pipeline scripts are numbered sequentially (e.g., 01_setup.sh, 02_run_tests.sh)
+and executed via `cap run src/<script>.sh`.
+
+The variant_classifier/ subdirectory contains the Python package.

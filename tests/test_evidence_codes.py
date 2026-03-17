@@ -1,7 +1,7 @@
 """Tests for evidence code definitions and lookups."""
 
 import pytest
-from src.evidence_codes import (
+from src.variant_classifier.evidence_codes import (
     ALL_CODES,
     PATHOGENIC_CODES,
     BENIGN_CODES,

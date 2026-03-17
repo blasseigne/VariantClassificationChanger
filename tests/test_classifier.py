@@ -6,8 +6,8 @@ edge cases, and boundary conditions.
 """
 
 import pytest
-from src.evidence_codes import ALL_CODES, get_code, parse_codes
-from src.classifier import (
+from src.variant_classifier.evidence_codes import ALL_CODES, get_code, parse_codes
+from src.variant_classifier.classifier import (
     Classification,
     classify,
     classify_from_names,

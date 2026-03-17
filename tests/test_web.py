@@ -2,7 +2,7 @@
 
 import json
 import pytest
-from src.web.app import app
+from src.variant_classifier.web.app import app
 
 
 @pytest.fixture

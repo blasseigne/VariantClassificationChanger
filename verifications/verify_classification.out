@@ -1,0 +1,20 @@
+=== Running classification verification ===
+Date: 2026-03-17T22:17:35Z
+
+PASS: [PVS1 PS1] -> Pathogenic
+PASS: [PVS1 PM1] -> Pathogenic
+PASS: [PVS1 PP1 PP2] -> Pathogenic
+PASS: [PVS1] -> Likely Pathogenic
+PASS: [PS1 PM1] -> Likely Pathogenic
+PASS: [PM1 PM2 PM3] -> Likely Pathogenic
+PASS: [PM2 PP3] -> VUS (Uncertain Significance)
+PASS: [PS1] -> VUS (Uncertain Significance)
+PASS: [PP1 PP2 PP3 PP4 PP5] -> VUS (Uncertain Significance)
+PASS: [BP1] -> Likely Benign
+PASS: [BS1 BP1] -> Likely Benign
+PASS: [BA1] -> Benign
+PASS: [BS1 BS2] -> Benign
+PASS: [BP1 BP2 BP3 BP4 BP5 BP6 BP7] -> Benign
+
+Results: 14 passed, 0 failed out of 14 tests
+VERIFICATION PASSED

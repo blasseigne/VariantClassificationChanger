@@ -1,0 +1,2 @@
+# Track .out verification output files for reproducibility comparison
+# (Do NOT ignore .out files — they should be committed)

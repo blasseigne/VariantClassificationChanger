@@ -2,6 +2,8 @@
 
 A tool for clinical geneticists and variant analysts that classifies sequence variants using the **Bayesian point-based system** ([Tavtigian et al. 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC8011844/)) and advises what additional evidence would be needed to change a variant's classification from one tier to another.
 
+This project follows the [CAPTURE](https://github.com/lasseignelab/capture) framework for reproducible computational research.
+
 ## Background
 
 The [ACMG/AMP 2015 guidelines](https://pmc.ncbi.nlm.nih.gov/articles/PMC4544753/) (Richards et al.) established 28 evidence codes for classifying sequence variants into five tiers: **Pathogenic**, **Likely Pathogenic**, **VUS (Uncertain Significance)**, **Likely Benign**, and **Benign**.
@@ -22,11 +24,11 @@ Classification is determined by the total point sum:
 
 | Classification | Point Range |
 |---|---|
-| Pathogenic | ≥ 10 |
+| Pathogenic | >= 10 |
 | Likely Pathogenic | 6 to 9 |
 | VUS | 0 to 5 |
 | Likely Benign | -1 to -6 |
-| Benign | ≤ -7 |
+| Benign | <= -7 |
 
 This point-based system is the foundation of the [ClinGen SVI](https://clinicalgenome.org/working-groups/sequence-variant-interpretation/) recommendations and the upcoming ACMG/AMP v4 guidelines (expected mid-2026).
 
@@ -38,8 +40,27 @@ This point-based system is the foundation of the [ClinGen SVI](https://clinicalg
 - **CLI and web interfaces**: use from the terminal or through an interactive browser-based UI
 - **REST API**: programmatic access via JSON endpoints
 - **121 comprehensive tests** covering all classification rules, boundary conditions, conflicting evidence, and validation that suggestions actually achieve their target tier
+- **CAPTURE framework**: reproducible project structure with numbered pipeline scripts, verification scripts, Docker support, and CI/CD
 
 ## Installation
+
+### With CAPTURE
+
+```bash
+git clone https://github.com/blasseigne/VariantClassificationChanger.git
+cd VariantClassificationChanger
+cap run src/01_setup_environment.sh
+```
+
+### Without CAPTURE
+
+```bash
+git clone https://github.com/blasseigne/VariantClassificationChanger.git
+cd VariantClassificationChanger
+bash src/01_setup_environment.sh
+```
+
+### Manual Setup
 
 ```bash
 git clone https://github.com/blasseigne/VariantClassificationChanger.git
@@ -56,7 +77,7 @@ pip install -r requirements.txt
 **Classify and get advice for a set of evidence codes:**
 
 ```bash
-python -m src PM2 PP3
+python -m src.variant_classifier PM2 PP3
 ```
 
 Example output:
@@ -84,34 +105,44 @@ Applied Codes: PM2, PP3
     ...
 ```
 
+**Using CAPTURE pipeline scripts:**
+
+```bash
+cap run src/03_run_cli.sh -- PM2 PP3
+# or without CAPTURE:
+bash src/03_run_cli.sh PM2 PP3
+```
+
 **Interactive mode:**
 
 ```bash
-python -m src --interactive
+python -m src.variant_classifier --interactive
 ```
 
 **Classification only (no advice):**
 
 ```bash
-python -m src --classify-only PVS1 PM2
+python -m src.variant_classifier --classify-only PVS1 PM2
 ```
 
 **List all evidence codes:**
 
 ```bash
-python -m src --list-codes
+python -m src.variant_classifier --list-codes
 ```
 
 **Limit suggestion size (max codes per suggestion):**
 
 ```bash
-python -m src --max-codes 2 PM2 PP3
+python -m src.variant_classifier --max-codes 2 PM2 PP3
 ```
 
 ### Web Application
 
 ```bash
-python -m src.web.app
+bash src/04_run_web.sh
+# or with CAPTURE:
+cap run src/04_run_web.sh
 ```
 
 Then open **http://localhost:8080** in your browser.
@@ -126,7 +157,7 @@ The web UI provides:
 
 The web app exposes three JSON endpoints:
 
-**POST `/api/classify`** — Classify a variant
+**POST `/api/classify`** -- Classify a variant
 
 ```bash
 curl -X POST http://localhost:8080/api/classify \
@@ -145,7 +176,7 @@ curl -X POST http://localhost:8080/api/classify \
 }
 ```
 
-**POST `/api/advise`** — Get upgrade/downgrade suggestions
+**POST `/api/advise`** -- Get upgrade/downgrade suggestions
 
 ```bash
 curl -X POST http://localhost:8080/api/advise \
@@ -153,10 +184,17 @@ curl -X POST http://localhost:8080/api/advise \
   -d '{"codes": ["PM2", "PP3"], "max_codes": 3}'
 ```
 
-**GET `/api/codes`** — List all available evidence codes
+**GET `/api/codes`** -- List all available evidence codes
 
 ```bash
 curl http://localhost:8080/api/codes
+```
+
+### Docker
+
+```bash
+docker build -t variant-classifier -f bin/container/Dockerfile .
+docker run -p 8080:8080 variant-classifier
 ```
 
 ## Evidence Codes Reference
@@ -199,34 +237,69 @@ curl http://localhost:8080/api/codes
 | BP6 | Supporting | -1 | Reputable source reports variant as benign |
 | BP7 | Supporting | -1 | Synonymous with no predicted splicing impact |
 
-## Project Structure
+## Project Structure (CAPTURE)
 
 ```
 VariantClassificationChanger/
+├── .github/
+│   ├── settings/
+│   │   └── default_ruleset.json    # Branch protection rules
+│   └── workflows/
+│       ├── mega-linter.yml         # Code quality CI
+│       └── tests.yml               # Test suite CI
+├── .mega-linter.yml                # Linter configuration
+├── bin/
+│   ├── container/
+│   │   └── Dockerfile              # Containerized reproducibility
+│   └── env/                        # Environment files
+├── config/
+│   ├── pipeline.sh                 # Project name & random seed
+│   └── environments/
+│       └── default.sh              # Default environment settings
+├── data/                           # Input data (git-ignored)
+├── doc/                            # Documentation & supplementary materials
+├── logs/                           # Execution logs (git-ignored)
+├── results/                        # Generated outputs
 ├── src/
-│   ├── __init__.py
-│   ├── __main__.py           # Entry point for python -m src
-│   ├── evidence_codes.py     # 28 ACMG/AMP codes with point values
-│   ├── classifier.py         # Bayesian point-based classification engine
-│   ├── advisor.py            # Bidirectional tier-change advisor
-│   ├── cli.py                # Command-line interface
-│   └── web/
-│       ├── __init__.py
-│       ├── app.py            # Flask web app + REST API
-│       └── templates/
-│           └── index.html    # Web UI
+│   ├── variant_classifier/         # Python package
+│   │   ├── __init__.py
+│   │   ├── __main__.py             # Entry point
+│   │   ├── evidence_codes.py       # 28 ACMG/AMP codes with point values
+│   │   ├── classifier.py           # Bayesian classification engine
+│   │   ├── advisor.py              # Bidirectional tier-change advisor
+│   │   ├── cli.py                  # Command-line interface
+│   │   └── web/
+│   │       ├── __init__.py
+│   │       ├── app.py              # Flask web app + REST API
+│   │       └── templates/
+│   │           └── index.html      # Web UI
+│   ├── 01_setup_environment.sh     # Setup venv & install deps
+│   ├── 02_run_tests.sh             # Run test suite
+│   ├── 03_run_cli.sh               # Run CLI classifier
+│   └── 04_run_web.sh               # Start web application
 ├── tests/
-│   ├── test_evidence_codes.py  # Evidence code definitions & lookups
-│   ├── test_classifier.py     # Classification rules & boundaries
-│   ├── test_advisor.py        # Advisor suggestions & validation
-│   └── test_web.py            # Flask API & page tests
-├── requirements.txt
-└── README.md
+│   ├── test_evidence_codes.py      # Evidence code definitions & lookups
+│   ├── test_classifier.py          # Classification rules & boundaries
+│   ├── test_advisor.py             # Advisor suggestions & validation
+│   └── test_web.py                 # Flask API & page tests
+├── verifications/
+│   └── verify_classification.sh    # Reproducibility verification
+├── DEVELOPMENT.md                  # Developer guide
+├── LICENSE                         # GPL-3.0
+├── README.md
+└── requirements.txt
 ```
 
 ## Testing
 
 ```bash
+# With CAPTURE:
+cap run src/02_run_tests.sh
+
+# Without CAPTURE:
+bash src/02_run_tests.sh
+
+# Or directly:
 source venv/bin/activate
 python -m pytest tests/ -v
 ```
@@ -243,6 +316,18 @@ The test suite (121 tests) covers:
 - **No duplicate suggestions**: already-applied codes are excluded from suggestions
 - **Web API**: all endpoints tested for correct responses and error handling
 - **Edge cases**: case insensitivity, invalid codes, empty input, extreme combinations
+
+## Verification
+
+```bash
+# With CAPTURE:
+cap run verifications/verify_classification.sh
+
+# Without CAPTURE:
+bash verifications/verify_classification.sh
+```
+
+Verification outputs are saved to `verifications/verify_classification.out` and should be committed so reviewers can `git diff` to confirm reproducibility.
 
 ## References
 

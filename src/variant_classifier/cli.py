@@ -3,9 +3,9 @@
 CLI interface for the ACMG/AMP Variant Classification Advisor.
 
 Usage:
-    python -m src.cli PM2 PP3 PP5
-    python -m src.cli --interactive
-    python -m src.cli --list-codes
+    python -m src.variant_classifier PM2 PP3 PP5
+    python -m src.variant_classifier --interactive
+    python -m src.variant_classifier --list-codes
 """
 
 import argparse
@@ -69,7 +69,7 @@ def run_interactive():
 def main():
     parser = argparse.ArgumentParser(
         description="ACMG/AMP Variant Classification Advisor (Bayesian Point System)",
-        epilog="Example: python -m src.cli PM2 PP3 PP5",
+        epilog="Example: python -m src.variant_classifier PM2 PP3 PP5",
     )
     parser.add_argument(
         "codes",

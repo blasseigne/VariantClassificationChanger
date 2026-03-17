@@ -1,0 +1,4 @@
+Add external programs and locally compiled software here.
+
+bin/container/ — Dockerfiles for containerized reproducibility
+bin/env/       — Conda/pip environment files

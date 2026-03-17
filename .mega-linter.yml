@@ -1,0 +1,10 @@
+# MegaLinter configuration
+# https://megalinter.io
+ENABLE_LINTERS:
+  - PYTHON_FLAKE8
+  - PYTHON_PYLINT
+  - PYTHON_BLACK
+  - BASH_SHELLCHECK
+  - MARKDOWN_MARKDOWNLINT
+SHOW_ELAPSED_TIME: true
+FILEIO_REPORTER: false

@@ -3,9 +3,9 @@ Comprehensive tests for the bidirectional classification advisor.
 """
 
 import pytest
-from src.evidence_codes import get_code, parse_codes
-from src.classifier import Classification, classify
-from src.advisor import (
+from src.variant_classifier.evidence_codes import get_code, parse_codes
+from src.variant_classifier.classifier import Classification, classify
+from src.variant_classifier.advisor import (
     advise,
     advise_from_names,
     format_advice,

@@ -1,6 +1,30 @@
+# Python
 venv/
 __pycache__/
 *.pyc
-.pytest_cache/
+*.pyo
 *.egg-info/
+.pytest_cache/
+dist/
+build/
+*.egg
+
+# Environments
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Containers
+*.sif
+
+# CAPTURE
+.labrc
