@@ -109,3 +109,30 @@ class TestParseCodes:
     def test_invalid_in_list_raises(self):
         with pytest.raises(ValueError):
             parse_codes(["PVS1", "FAKE", "PM2"])
+
+    def test_duplicate_codes_raises(self):
+        """Each evidence code can only be applied once."""
+        with pytest.raises(ValueError, match="Duplicate"):
+            parse_codes(["PVS1", "PVS1"])
+
+    def test_duplicate_codes_case_insensitive(self):
+        """Duplicates detected regardless of case."""
+        with pytest.raises(ValueError, match="Duplicate"):
+            parse_codes(["pvs1", "PVS1"])
+
+
+class TestGetCodeTypeValidation:
+    def test_non_string_raises(self):
+        with pytest.raises(ValueError, match="must be a string"):
+            get_code(123)
+
+    def test_none_raises(self):
+        with pytest.raises(ValueError, match="must be a string"):
+            get_code(None)
+
+
+class TestNoOverlappingCodes:
+    def test_no_code_in_both_directions(self):
+        """No code should appear in both pathogenic and benign sets."""
+        overlap = set(PATHOGENIC_CODES.keys()) & set(BENIGN_CODES.keys())
+        assert len(overlap) == 0, f"Codes in both sets: {overlap}"

@@ -5,7 +5,7 @@ Flask web application for the ACMG/AMP Variant Classification Advisor.
 from flask import Flask, render_template, request, jsonify
 
 from ..evidence_codes import ALL_CODES, EvidenceDirection
-from ..classifier import classify_from_names
+from ..classifier import classify_from_names, calculate_points
 from ..advisor import advise_from_names
 
 
@@ -67,6 +67,8 @@ def api_advise():
         return jsonify({"error": "'codes' must be a list of strings"}), 400
 
     max_codes = data.get("max_codes", 4)
+    if not isinstance(max_codes, int) or max_codes < 1 or max_codes > 10:
+        return jsonify({"error": "'max_codes' must be an integer between 1 and 10"}), 400
 
     try:
         result = advise_from_names(code_names, max_codes=max_codes)
@@ -87,10 +89,13 @@ def api_advise():
                 ],
             }
 
+        _, path_pts, ben_pts = calculate_points(result.applied_codes)
         return jsonify({
             "current_classification": result.current_classification.label,
             "current_short": result.current_classification.short_label,
             "total_points": result.total_points,
+            "pathogenic_points": path_pts,
+            "benign_points": ben_pts,
             "applied_codes": [c.code for c in result.applied_codes],
             "upgrades": [format_change(u) for u in result.upgrades],
             "downgrades": [format_change(d) for d in result.downgrades],
@@ -120,4 +125,4 @@ def create_app():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+    app.run(port=8080)

@@ -167,7 +167,7 @@ PP5 = EvidenceCode(
     direction=EvidenceDirection.PATHOGENIC,
     strength=EvidenceStrength.SUPPORTING,
     points=1,
-    description="Reputable source recently reports variant as pathogenic, but evidence is not available to the laboratory",
+    description="Reputable source recently reports variant as pathogenic, but evidence is not available to the laboratory (note: ClinGen SVI recommends against using this code)",
 )
 
 # --- Benign evidence codes ---
@@ -257,7 +257,7 @@ BP6 = EvidenceCode(
     direction=EvidenceDirection.BENIGN,
     strength=EvidenceStrength.SUPPORTING,
     points=-1,
-    description="Reputable source recently reports variant as benign, but evidence is not available to the laboratory",
+    description="Reputable source recently reports variant as benign, but evidence is not available to the laboratory (note: ClinGen SVI recommends against using this code)",
 )
 
 BP7 = EvidenceCode(
@@ -289,6 +289,10 @@ BENIGN_CODES = {k: v for k, v in ALL_CODES.items() if v.direction == EvidenceDir
 
 def get_code(code_name: str) -> EvidenceCode:
     """Look up an evidence code by name (case-insensitive)."""
+    if not isinstance(code_name, str):
+        raise ValueError(
+            f"Evidence code must be a string, got {type(code_name).__name__}: {code_name!r}"
+        )
     key = code_name.strip().upper()
     if key not in ALL_CODES:
         raise ValueError(
@@ -299,5 +303,20 @@ def get_code(code_name: str) -> EvidenceCode:
 
 
 def parse_codes(code_names: list[str]) -> list[EvidenceCode]:
-    """Parse a list of code name strings into EvidenceCode objects."""
-    return [get_code(name) for name in code_names]
+    """Parse a list of code name strings into EvidenceCode objects.
+
+    Raises ValueError if any code is duplicated, since each ACMG/AMP
+    evidence code should be applied at most once per variant.
+    """
+    seen: set[str] = set()
+    codes: list[EvidenceCode] = []
+    for name in code_names:
+        code = get_code(name)
+        if code.code in seen:
+            raise ValueError(
+                f"Duplicate evidence code: '{code.code}'. "
+                f"Each code can only be applied once per variant."
+            )
+        seen.add(code.code)
+        codes.append(code)
+    return codes

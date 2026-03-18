@@ -21,6 +21,8 @@ from .classifier import (
     classify,
     calculate_points,
     points_to_classification,
+    min_points_for_tier,
+    max_points_for_tier,
 )
 
 
@@ -46,28 +48,13 @@ class AdvisorResult:
     downgrades: list[TierChange]
 
 
-def _min_points_for_tier(tier: Classification) -> int:
-    """Return the minimum point value needed to enter a tier."""
-    thresholds = {
-        Classification.PATHOGENIC: 10,
-        Classification.LIKELY_PATHOGENIC: 6,
-        Classification.VUS: 0,
-        Classification.LIKELY_BENIGN: -6,
-        Classification.BENIGN: -7,
-    }
-    return thresholds[tier]
 
-
-def _max_points_for_tier(tier: Classification) -> int:
-    """Return the maximum point value for a tier (for downgrade targets)."""
-    thresholds = {
-        Classification.PATHOGENIC: 999,
-        Classification.LIKELY_PATHOGENIC: 9,
-        Classification.VUS: 5,
-        Classification.LIKELY_BENIGN: -1,
-        Classification.BENIGN: -7,
-    }
-    return thresholds[tier]
+# _min_points_for_tier and _max_points_for_tier are now imported from
+# classifier.py (as min_points_for_tier / max_points_for_tier) to maintain
+# a single source of truth for classification thresholds.
+# Kept as private aliases for backward compatibility with tests.
+_min_points_for_tier = min_points_for_tier
+_max_points_for_tier = max_points_for_tier
 
 
 def _find_minimal_combinations(
@@ -187,7 +174,7 @@ def advise_from_names(code_names: list[str], max_codes: int = 4) -> AdvisorResul
     return advise(codes, max_codes)
 
 
-def format_advice(result: AdvisorResult) -> str:
+def format_advice(result: AdvisorResult, max_codes: int = 4) -> str:
     """Format advisor results as a human-readable string."""
     lines = [
         f"Current Classification: {result.current_classification.label}",
@@ -208,7 +195,7 @@ def format_advice(result: AdvisorResult) -> str:
                     total = sum(c.points for c in combo)
                     lines.append(f"    Option {i}: {codes_str} = {total:+d} points")
             else:
-                lines.append("    No single combination of up to 4 codes is sufficient.")
+                lines.append(f"    No single combination of up to {max_codes} codes is sufficient.")
         lines.append("")
 
     if result.downgrades:
@@ -223,7 +210,7 @@ def format_advice(result: AdvisorResult) -> str:
                     total = sum(c.points for c in combo)
                     lines.append(f"    Option {i}: {codes_str} = {total:+d} points")
             else:
-                lines.append("    No single combination of up to 4 codes is sufficient.")
+                lines.append(f"    No single combination of up to {max_codes} codes is sufficient.")
         lines.append("")
 
     if not result.upgrades and not result.downgrades:

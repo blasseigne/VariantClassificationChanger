@@ -1,0 +1,16 @@
+.git
+.github
+.claude
+.pytest_cache
+__pycache__
+venv
+*.pyc
+*.pyo
+*.egg-info
+.DS_Store
+.mega-linter.yml
+logs/
+data/
+results/
+doc/
+DEVELOPMENT.md

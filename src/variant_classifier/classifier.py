@@ -47,7 +47,8 @@ class Classification(IntEnum):
         }[self]
 
 
-# Threshold boundaries (inclusive)
+# Threshold boundaries (inclusive): (min_points, max_points)
+# This is the SINGLE SOURCE OF TRUTH for classification thresholds.
 THRESHOLDS = {
     Classification.PATHOGENIC: (10, float("inf")),
     Classification.LIKELY_PATHOGENIC: (6, 9),
@@ -55,6 +56,24 @@ THRESHOLDS = {
     Classification.LIKELY_BENIGN: (-6, -1),
     Classification.BENIGN: (float("-inf"), -7),
 }
+
+
+def min_points_for_tier(tier: Classification) -> int:
+    """Return the minimum point value needed to enter a tier."""
+    low, _ = THRESHOLDS[tier]
+    # For Benign, the lower bound is -inf; use -7 as the entry threshold
+    if low == float("-inf"):
+        return -7
+    return int(low)
+
+
+def max_points_for_tier(tier: Classification) -> int:
+    """Return the maximum point value for a tier."""
+    _, high = THRESHOLDS[tier]
+    # For Pathogenic, the upper bound is +inf; use a large sentinel
+    if high == float("inf"):
+        return 999
+    return int(high)
 
 
 @dataclass
@@ -89,17 +108,15 @@ def calculate_points(codes: list[EvidenceCode]) -> tuple[int, int, int]:
 
 
 def points_to_classification(total_points: int) -> Classification:
-    """Convert a point total to a classification tier."""
-    if total_points >= 10:
-        return Classification.PATHOGENIC
-    elif total_points >= 6:
-        return Classification.LIKELY_PATHOGENIC
-    elif total_points >= 0:
-        return Classification.VUS
-    elif total_points >= -6:
-        return Classification.LIKELY_BENIGN
-    else:
-        return Classification.BENIGN
+    """Convert a point total to a classification tier.
+
+    Uses the THRESHOLDS dict as the single source of truth.
+    """
+    for tier, (low, high) in THRESHOLDS.items():
+        if low <= total_points <= high:
+            return tier
+    # Should be unreachable since thresholds cover all integers
+    return Classification.VUS
 
 
 def classify(codes: list[EvidenceCode]) -> ClassificationResult:

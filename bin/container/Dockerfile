@@ -5,13 +5,21 @@ LABEL description="ACMG/AMP Variant Classification Advisor"
 
 WORKDIR /app
 
+# Install runtime dependencies only
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
+# Copy source code
 COPY src/ src/
-COPY tests/ tests/
+
+# Create non-root user
+RUN adduser --disabled-password --gecos "" appuser
+USER appuser
 
 EXPOSE 8080
 
-# Default: run the web app
-CMD ["python", "-m", "flask", "--app", "src.variant_classifier.web.app:app", "run", "--host", "0.0.0.0", "--port", "8080"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/')" || exit 1
+
+# Run with gunicorn for production
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "src.variant_classifier.web.app:app"]

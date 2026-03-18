@@ -34,7 +34,7 @@ def list_codes():
     print()
 
 
-def run_interactive():
+def run_interactive(max_codes: int = 4):
     """Run interactive mode where users can enter codes repeatedly."""
     print("ACMG/AMP Variant Classification Advisor (Bayesian Point System)")
     print("Type evidence codes separated by spaces, or 'quit' to exit.")
@@ -58,9 +58,9 @@ def run_interactive():
 
         code_names = user_input.split()
         try:
-            result = advise_from_names(code_names)
+            result = advise_from_names(code_names, max_codes=max_codes)
             print()
-            print(format_advice(result))
+            print(format_advice(result, max_codes=max_codes))
             print()
         except ValueError as e:
             print(f"Error: {e}\n")
@@ -104,8 +104,12 @@ def main():
         list_codes()
         return
 
+    if args.max_codes < 1 or args.max_codes > 10:
+        print("Error: --max-codes must be between 1 and 10", file=sys.stderr)
+        sys.exit(1)
+
     if args.interactive:
-        run_interactive()
+        run_interactive(max_codes=args.max_codes)
         return
 
     if not args.codes:
@@ -118,7 +122,7 @@ def main():
             print(result.summary())
         else:
             result = advise_from_names(args.codes, max_codes=args.max_codes)
-            print(format_advice(result))
+            print(format_advice(result, max_codes=args.max_codes))
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)

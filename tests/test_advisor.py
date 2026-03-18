@@ -10,6 +10,7 @@ from src.variant_classifier.advisor import (
     advise_from_names,
     format_advice,
     _min_points_for_tier,
+    _max_points_for_tier,
     _find_minimal_combinations,
 )
 
@@ -295,3 +296,46 @@ class TestMinPointsForTier:
 
     def test_benign_threshold(self):
         assert _min_points_for_tier(Classification.BENIGN) == -7
+
+
+class TestMaxPointsForTier:
+    def test_pathogenic_max(self):
+        assert _max_points_for_tier(Classification.PATHOGENIC) == 999
+
+    def test_lp_max(self):
+        assert _max_points_for_tier(Classification.LIKELY_PATHOGENIC) == 9
+
+    def test_vus_max(self):
+        assert _max_points_for_tier(Classification.VUS) == 5
+
+    def test_lb_max(self):
+        assert _max_points_for_tier(Classification.LIKELY_BENIGN) == -1
+
+    def test_benign_max(self):
+        assert _max_points_for_tier(Classification.BENIGN) == -7
+
+
+class TestMaxCodesParameter:
+    """Test that max_codes parameter is respected."""
+
+    def test_max_codes_1_limits_suggestions(self):
+        result = advise_from_names(["PM2", "PP3"], max_codes=1)
+        for change in result.upgrades:
+            for combo in change.possible_additions:
+                assert len(combo) <= 1
+
+    def test_max_codes_2(self):
+        result = advise_from_names(["PM2", "PP3"], max_codes=2)
+        for change in result.upgrades:
+            for combo in change.possible_additions:
+                assert len(combo) <= 2
+
+
+class TestFormatAdviceMaxCodes:
+    """Test that format_advice uses the correct max_codes in messages."""
+
+    def test_format_uses_custom_max_codes(self):
+        result = advise_from_names(["PM2", "PP3"], max_codes=2)
+        text = format_advice(result, max_codes=2)
+        # Should not say "up to 4" when max_codes is 2
+        assert "up to 4" not in text

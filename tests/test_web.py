@@ -105,6 +105,77 @@ class TestAdviseAPI:
         )
         assert response.status_code == 400
 
+    def test_advise_returns_points_breakdown(self, client):
+        response = client.post(
+            "/api/advise",
+            data=json.dumps({"codes": ["PM2", "PP3", "BP1"]}),
+            content_type="application/json",
+        )
+        data = json.loads(response.data)
+        assert data["pathogenic_points"] == 3  # PM2(2) + PP3(1)
+        assert data["benign_points"] == -1     # BP1(-1)
+        assert data["total_points"] == 2
+
+    def test_advise_invalid_code(self, client):
+        response = client.post(
+            "/api/advise",
+            data=json.dumps({"codes": ["FAKE"]}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+    def test_advise_codes_not_list(self, client):
+        response = client.post(
+            "/api/advise",
+            data=json.dumps({"codes": "PVS1"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+    def test_advise_duplicate_code(self, client):
+        response = client.post(
+            "/api/advise",
+            data=json.dumps({"codes": ["PVS1", "PVS1"]}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert "Duplicate" in data["error"]
+
+    def test_advise_max_codes_parameter(self, client):
+        response = client.post(
+            "/api/advise",
+            data=json.dumps({"codes": ["PM2"], "max_codes": 2}),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+
+    def test_advise_max_codes_too_high(self, client):
+        response = client.post(
+            "/api/advise",
+            data=json.dumps({"codes": ["PM2"], "max_codes": 99}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+    def test_advise_max_codes_zero(self, client):
+        response = client.post(
+            "/api/advise",
+            data=json.dumps({"codes": ["PM2"], "max_codes": 0}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+    def test_classify_duplicate_code(self, client):
+        response = client.post(
+            "/api/classify",
+            data=json.dumps({"codes": ["PVS1", "PVS1"]}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert "Duplicate" in data["error"]
+
     def test_advise_pathogenic_no_upgrades(self, client):
         response = client.post(
             "/api/advise",
